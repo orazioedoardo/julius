@@ -2,6 +2,7 @@
 
 #include "core/file.h"
 #include "core/log.h"
+#include "platform/prefs.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -90,7 +91,7 @@ static void set_defaults(void)
 void config_load(void)
 {
     set_defaults();
-    FILE *fp = file_open(INI_FILENAME, "rt");
+    FILE *fp = open_pref_file(INI_FILENAME, "rt");
     if (!fp) {
         return;
     }
@@ -129,7 +130,7 @@ void config_load(void)
 
 void config_save(void)
 {
-    FILE *fp = file_open(INI_FILENAME, "wt");
+    FILE *fp = open_pref_file(INI_FILENAME, "wt");
     if (!fp) {
         log_error("Unable to write configuration file", INI_FILENAME, 0);
         return;
