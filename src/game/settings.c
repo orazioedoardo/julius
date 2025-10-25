@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "settings.h"
 
 #include "city/constants.h"
@@ -5,6 +7,7 @@
 #include "core/calc.h"
 #include "core/io.h"
 #include "core/string.h"
+#include "platform/prefs.h"
 
 #define INF_SIZE 560
 #define MAX_PERSONAL_SAVINGS 100
@@ -118,7 +121,13 @@ void settings_load(void)
 {
     load_default_settings();
 
-    int size = io_read_file_into_buffer("c3.inf", NOT_LOCALIZED, data.inf_file, INF_SIZE);
+    char *pref_file = get_pref_file("c3.inf");
+    if (!pref_file) {
+        return;
+    }
+
+    int size = io_read_file_into_buffer(pref_file, NOT_LOCALIZED, data.inf_file, INF_SIZE);
+    free(pref_file);
     if (!size) {
         return;
     }
@@ -180,7 +189,13 @@ void settings_save(void)
     buffer_write_i32(buf, data.difficulty);
     buffer_write_i32(buf, data.gods_enabled);
 
-    io_write_buffer_to_file("c3.inf", data.inf_file, INF_SIZE);
+    char *pref_file = get_pref_file("c3.inf");
+    if (!pref_file) {
+        return;
+    }
+
+    io_write_buffer_to_file(pref_file, data.inf_file, INF_SIZE);
+    free(pref_file);
 }
 
 int setting_fullscreen(void)
