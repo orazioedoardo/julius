@@ -8,6 +8,7 @@ string(TOLOWER ${TARGET_PLATFORM} TARGET_PLATFORM)
 
 option(DRAW_FPS "Draw FPS on the top left corner of the window." OFF)
 option(SYSTEM_LIBS "Use system libraries when available." ON)
+option(ENABLE_TESTS "Enable unit tests" ON)
 
 if(${TARGET_PLATFORM} STREQUAL "vita" AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     if(DEFINED ENV{VITASDK})
@@ -944,7 +945,7 @@ else()
     endif()
 
     # Unit tests
-    if(${TARGET_PLATFORM} STREQUAL "default")
+    if(ENABLE_TESTS AND ${TARGET_PLATFORM} STREQUAL "default")
         enable_testing()
         add_subdirectory(test)
     endif()
