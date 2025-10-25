@@ -36,6 +36,7 @@
 #include "map/routing.h"
 #include "map/sprite.h"
 #include "map/terrain.h"
+#include "platform/prefs.h"
 #include "scenario/criteria.h"
 #include "scenario/earthquake.h"
 #include "scenario/emperor_change.h"
@@ -635,7 +636,14 @@ int game_file_io_read_saved_game(const char *filename, int offset)
     init_savegame_data();
 
     log_info("Loading saved game", filename, 0);
-    FILE *fp = file_open(dir_get_file(filename, NOT_LOCALIZED), "rb");
+
+    FILE *fp;
+    if (is_save_game(filename)) {
+        fp = open_pref_file(filename, "rb");
+    } else {
+        fp = file_open(dir_get_file(filename, NOT_LOCALIZED), "rb");
+    }
+
     if (!fp) {
         log_error("Unable to load game", 0, 0);
         return 0;
@@ -661,7 +669,13 @@ int game_file_io_write_saved_game(const char *filename)
     savegame_version = SAVE_GAME_VERSION;
     savegame_save_to_state(&savegame_data.state);
 
-    FILE *fp = file_open(filename, "wb");
+    FILE *fp;
+    if (is_save_game(filename)) {
+        fp = open_pref_file(filename, "wb");
+    } else {
+        fp = file_open(dir_get_file(filename, NOT_LOCALIZED), "wb");
+    }
+
     if (!fp) {
         log_error("Unable to save game", 0, 0);
         return 0;
@@ -674,9 +688,25 @@ int game_file_io_write_saved_game(const char *filename)
 int game_file_io_delete_saved_game(const char *filename)
 {
     log_info("Deleting game", filename, 0);
-    int result = file_remove(filename);
-    if (!result) {
-        log_error("Unable to delete game", 0, 0);
+    if (is_save_game(filename)) {
+        char *pref_file = get_pref_file(filename);
+        if (!pref_file) {
+            log_error("Unable to delete game", 0, 0);
+            return 0;
+        }
+
+        int result = file_remove(pref_file);
+        if (!result) {
+            log_error("Unable to delete game", 0, 0);
+        }
+
+        free(pref_file);
+        return result;
+    } else {
+        int result = file_remove(filename);
+        if (!result) {
+            log_error("Unable to delete game", 0, 0);
+        }
+        return result;
     }
-    return result;
 }
