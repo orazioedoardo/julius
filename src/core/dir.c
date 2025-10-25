@@ -4,6 +4,9 @@
 #include "core/file.h"
 #include "core/string.h"
 #include "platform/file_manager.h"
+#include "platform/prefs.h"
+
+#include "SDL.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -67,7 +70,13 @@ static int add_to_listing(const char *filename)
 const dir_listing *dir_find_files_with_extension(const char *extension)
 {
     clear_dir_listing();
-    platform_file_manager_list_directory_contents(0, TYPE_FILE, extension, add_to_listing);
+    if (!strcmp(extension, "sav")) {
+        char *pref_dir = SDL_GetPrefPath("bvschaik", "julius");
+        platform_file_manager_list_directory_contents(pref_dir, TYPE_FILE, extension, add_to_listing);
+        SDL_free(pref_dir);
+    } else {
+        platform_file_manager_list_directory_contents(0, TYPE_FILE, extension, add_to_listing);
+    }
     qsort(data.listing.files, data.listing.num_files, sizeof(char*), compare_lower);
     return &data.listing;
 }
@@ -169,5 +178,12 @@ const char *dir_get_file(const char *filepath, int localizable)
         }
     }
 
-    return get_case_corrected_file(0, filepath);
+    if (is_save_game(filepath)) {
+        char *pref_dir = SDL_GetPrefPath("bvschaik", "julius");
+        const char *path = get_case_corrected_file(pref_dir, filepath);
+        SDL_free(pref_dir);
+        return path;
+    } else {
+        return get_case_corrected_file(0, filepath);
+    }
 }
