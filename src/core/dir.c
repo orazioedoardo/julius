@@ -74,6 +74,13 @@ const dir_listing *dir_find_files_with_extension(const char *extension)
         char *pref_dir = SDL_GetPrefPath("bvschaik", "julius");
         platform_file_manager_list_directory_contents(pref_dir, TYPE_FILE, extension, add_to_listing);
         SDL_free(pref_dir);
+
+    } else if (!strcmp(extension, "map")) {
+        char *pref_dir = SDL_GetPrefPath("bvschaik", "julius");
+        platform_file_manager_list_directory_contents(pref_dir, TYPE_FILE, extension, add_to_listing);
+        SDL_free(pref_dir);
+
+        platform_file_manager_list_directory_contents(0, TYPE_FILE, extension, add_to_listing);
     } else {
         platform_file_manager_list_directory_contents(0, TYPE_FILE, extension, add_to_listing);
     }
@@ -178,11 +185,18 @@ const char *dir_get_file(const char *filepath, int localizable)
         }
     }
 
-    if (is_save_game(filepath)) {
+    if (file_has_extension(filepath, "sav")) {
         char *pref_dir = SDL_GetPrefPath("bvschaik", "julius");
         const char *path = get_case_corrected_file(pref_dir, filepath);
         SDL_free(pref_dir);
         return path;
+
+    } else if (file_has_extension(filepath, "map")) {
+        char *pref_dir = SDL_GetPrefPath("bvschaik", "julius");
+        const char *path = get_case_corrected_file(pref_dir, filepath);
+        SDL_free(pref_dir);
+        return (path) ? path : get_case_corrected_file(0, filepath);
+
     } else {
         return get_case_corrected_file(0, filepath);
     }
