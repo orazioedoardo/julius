@@ -509,7 +509,17 @@ int game_file_io_read_scenario(const char *filename)
 {
     log_info("Loading scenario", filename, 0);
     init_scenario_data();
-    FILE *fp = file_open(dir_get_file(filename, NOT_LOCALIZED), "rb");
+
+    FILE *fp;
+    if (file_has_extension(filename, "map")) {
+        fp = open_pref_file(filename, "rb");
+        if (!fp) {
+            fp = file_open(dir_get_file(filename, NOT_LOCALIZED), "rb");
+        }
+    } else {
+        fp = file_open(dir_get_file(filename, NOT_LOCALIZED), "rb");
+    }
+
     if (!fp) {
         return 0;
     }
@@ -533,7 +543,16 @@ int game_file_io_write_scenario(const char *filename)
     init_scenario_data();
     scenario_save_to_state(&scenario_data.state);
 
-    FILE *fp = file_open(filename, "wb");
+    FILE *fp;
+    if (file_has_extension(filename, "map")) {
+        fp = open_pref_file(filename, "wb");
+        if (!fp) {
+            fp = file_open(dir_get_file(filename, NOT_LOCALIZED), "wb");
+        }
+    } else {
+        fp = file_open(dir_get_file(filename, NOT_LOCALIZED), "wb");
+    }
+
     if (!fp) {
         log_error("Unable to save scenario", 0, 0);
         return 0;
@@ -638,7 +657,7 @@ int game_file_io_read_saved_game(const char *filename, int offset)
     log_info("Loading saved game", filename, 0);
 
     FILE *fp;
-    if (is_save_game(filename)) {
+    if (file_has_extension(filename, "sav")) {
         fp = open_pref_file(filename, "rb");
     } else {
         fp = file_open(dir_get_file(filename, NOT_LOCALIZED), "rb");
@@ -670,7 +689,7 @@ int game_file_io_write_saved_game(const char *filename)
     savegame_save_to_state(&savegame_data.state);
 
     FILE *fp;
-    if (is_save_game(filename)) {
+    if (file_has_extension(filename, "sav")) {
         fp = open_pref_file(filename, "wb");
     } else {
         fp = file_open(dir_get_file(filename, NOT_LOCALIZED), "wb");
@@ -688,7 +707,7 @@ int game_file_io_write_saved_game(const char *filename)
 int game_file_io_delete_saved_game(const char *filename)
 {
     log_info("Deleting game", filename, 0);
-    if (is_save_game(filename)) {
+    if (file_has_extension(filename, "sav")) {
         char *pref_file = get_pref_file(filename);
         if (!pref_file) {
             log_error("Unable to delete game", 0, 0);

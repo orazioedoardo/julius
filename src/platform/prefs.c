@@ -67,10 +67,3 @@ void pref_save_data_dir(const char *data_dir)
         fclose(fp);
     }
 }
-
-int is_save_game(const char * filepath)
-{
-    size_t filepath_len = strlen(filepath);
-    size_t extension_len = strlen(".sav");
-    return (filepath_len >= extension_len && !strcmp(filepath + filepath_len - extension_len, ".sav"));
-}
