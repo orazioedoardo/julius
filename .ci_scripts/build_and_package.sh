@@ -49,15 +49,20 @@ apt-get install --yes build-essential \
 	libgl1-mesa-dev \
 	libsdl2-dev \
 	libsdl2-mixer-dev \
-	software-properties-common
+	software-properties-common \
+	unzip \
 
 pushd /julius
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSYSTEM_LIBS=OFF -DENABLE_TESTS=OFF -DCMAKE_INSTALL_PREFIX=/usr
 cmake --build build -j "$(nproc)"
+.ci_scripts/get_support_files.sh
 
 mkdir -p julius.AppDir/usr/{bin,lib,share/{applications,metainfo,icons}}
 
 cp -a assets julius.AppDir/usr/share/
+cp -a support/languages/* julius.AppDir/usr/share/assets/
+cp -a support/editor/* julius.AppDir/usr/share/assets/
+cp -a support/mp3 julius.AppDir/usr/share/assets/
 cp -a build/julius julius.AppDir/usr/bin/
 
 cp -a res/AppRun julius.AppDir/
@@ -86,6 +91,13 @@ if [ ! -f "$runtime_filename" ]; then
 	curl -sSf -L -O "$runtime_baseurl/$runtime_filename"
 	chmod +x "$runtime_filename"
 fi
+
+pushd julius.AppDir
+rm -r usr/share/assets/__redist
+find . -type f -name .DS_Store -delete
+find . -type f ! -path ./AppRun ! -path ./usr/bin/julius -exec chmod 0644 {} +
+find . -type d -exec chmod 0755 {} +
+popd
 
 ./"$appimagetool_filename" --no-appstream --runtime-file "runtime-$system_arch" julius.AppDir "julius-$sw_version-linux-$system_arch.AppImage"
 
