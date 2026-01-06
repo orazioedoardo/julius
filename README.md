@@ -1,5 +1,9 @@
 # Julius ![](res/julius_48.png)
 
+## About this fork
+
+This fork bundles Caesar 3 files, translations and map editor inside the AppImage. It also stores settings, save games and scenarios in the SDL preferences path instead of the Caesar 3 directory, which wouldn't be writable inside the AppImage. These modifications have not been tested on non-Linux systems.
+
 [![Github Actions](https://github.com/bvschaik/julius/workflows/Build%20Julius/badge.svg)](https://github.com/bvschaik/julius/actions)
 
 Download:
@@ -42,6 +46,28 @@ While Julius does not implement any gameplay changes, a fork of Julius named [Au
 Note: Julius save games are fully compatible with the original Caesar 3 save files and vice versa. Augustus can load original/Julius save games, but save games made with Augustus cannot be loaded in Julius or original Caesar 3.
 
 ![](res/vita/bg.png)
+
+## Building the game
+
+Make sure you have the Caesar 3 files inside a folder named `assets` in the root of the repository.
+
+To build the AppImage for aarch64 on macOS run:
+
+```
+$ container run --rm -i -v ${PWD}:/julius ubuntu:jammy < .ci_scripts/build_and_package.sh
+```
+
+To build the AppImage for x86_64 on macOS run:
+
+```
+$ container run --rm -i -a amd64 -v ${PWD}:/julius ubuntu:jammy < .ci_scripts/build_and_package.sh
+```
+
+To build the AppImage for the current architecture on Linux run:
+
+```
+$ docker run --rm --device /dev/fuse --cap-add SYS_ADMIN -i -v ${PWD}:/julius ubuntu:jammy < .ci_scripts/build_and_package.sh
+```
 
 ## Running the game
 
