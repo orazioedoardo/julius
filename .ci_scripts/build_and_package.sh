@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# docker run --rm --device /dev/fuse --cap-add SYS_ADMIN -i -v ${PWD}:/julius ubuntu:jammy < .ci_scripts/build_and_package.sh
-
 set -xe
 
 system_arch="$(uname -m)"
@@ -84,6 +82,7 @@ done
 if [ ! -f "$appimagetool_filename" ]; then
 	curl -sSf -L -O "$appimagetool_baseurl/$appimagetool_filename"
 	chmod +x "$appimagetool_filename"
+	dd if=/dev/zero bs=1 count=3 seek=8 conv=notrunc of="$appimagetool_filename"
 fi
 
 if [ ! -f "$runtime_filename" ]; then
