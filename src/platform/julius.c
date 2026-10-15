@@ -65,9 +65,7 @@ static struct {
 
 static void exit_with_status(int status)
 {
-#ifdef __EMSCRIPTEN__
-    EM_ASM(Module.quitGame($0), status);
-#endif
+    // On the web, exiting ends the runtime (-sEXIT_RUNTIME) and the page says how the game ended
     exit(status);
 }
 
@@ -377,6 +375,17 @@ static void teardown(void)
 
 static void main_loop(void)
 {
+#ifdef __EMSCRIPTEN__
+    // After quitting, wait for the settings written on exit to reach IndexedDB: exiting the runtime closes it
+    static int quit_files_saved = -1;
+    if (quit_files_saved == 1) {
+        emscripten_cancel_main_loop();
+        emscripten_force_exit(0);
+    }
+    if (quit_files_saved >= 0) {
+        return;
+    }
+#endif
     SDL_Event event;
 #ifdef PLATFORM_ENABLE_PER_FRAME_CALLBACK
     platform_per_frame_callback();
@@ -386,21 +395,26 @@ static void main_loop(void)
         handle_event(&event);
     }
     if (data.quit) {
-#ifdef __EMSCRIPTEN__
-        emscripten_cancel_main_loop();
-#endif
         teardown();
 #ifdef __EMSCRIPTEN__
-        EM_ASM(
-            Module.quitGame();
-        );
+        quit_files_saved = 0;
+        EM_ASM({
+            FS.syncfs(false, function(err) {
+                if (err) console.warn("Saving files failed:", err);
+                HEAP32[$0 >> 2] = 1;
+            });
+        }, &quit_files_saved);
 #endif
         return;
     }
     if (data.active) {
         run_and_draw();
     } else {
+#ifndef __EMSCRIPTEN__
+        // On the web the window is "hidden" while the tab is, and the browser then stops calling main_loop
+        // anyway; waiting here would block the page forever
         SDL_WaitEvent(NULL);
+#endif
     }
 }
 
@@ -591,6 +605,14 @@ static void setup(const julius_args *args)
         exit_with_status(1);
     }
 
+#ifdef __EMSCRIPTEN__
+    // The page sizes the canvas and handles fullscreen (Cmd+F)
+    if (setting_fullscreen()) {
+        int w, h;
+        setting_window(&w, &h);
+        setting_set_display(0, w, h);
+    }
+#endif
     if (args->force_windowed && setting_fullscreen()) {
         int w, h;
         setting_window(&w, &h);
@@ -643,6 +665,13 @@ int main(int argc, char **argv)
         exit_with_status(1);
 #endif
     }
+
+#ifdef __EMSCRIPTEN__
+    // The web build packs the Caesar 3 files at /c3 (see CMakeLists.txt)
+    if (!args.data_directory) {
+        args.data_directory = "/c3";
+    }
+#endif
 
     setup(&args);
 

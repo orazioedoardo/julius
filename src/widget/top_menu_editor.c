@@ -90,7 +90,11 @@ static void clear_state(void)
 
 static void init(void)
 {
+#ifdef __EMSCRIPTEN__
+    menu[INDEX_OPTIONS].items[0].hidden = 1; // fullscreen and window size: the page sizes the game
+#else
     menu[INDEX_OPTIONS].items[0].hidden = system_is_fullscreen_only();
+#endif
 }
 
 static void draw_foreground(void)

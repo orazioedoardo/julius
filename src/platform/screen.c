@@ -105,7 +105,12 @@ int platform_screen_create(const char *title, int display_scale_percentage, int 
     set_scale_percentage(display_scale_percentage, 0, 0);
 
     int width, height;
+#ifdef __EMSCRIPTEN__
+    // The window is the canvas, which the page sizes; SDL follows its size (the window is resizable)
+    int fullscreen = 0;
+#else
     int fullscreen = system_is_fullscreen_only() ? 1 : setting_fullscreen();
+#endif
     if (fullscreen) {
         SDL_DisplayMode mode;
         SDL_GetDesktopDisplayMode(0, &mode);
@@ -277,6 +282,10 @@ int platform_screen_get_scale(void)
 
 void platform_screen_set_fullscreen(void)
 {
+#ifdef __EMSCRIPTEN__
+    // The page handles fullscreen (Cmd+F): browsers only allow it from their own key handler
+    return;
+#endif
     SDL_GetWindowPosition(SDL.window, &window_pos.x, &window_pos.y);
     int display = SDL_GetWindowDisplayIndex(SDL.window);
     SDL_DisplayMode mode;
@@ -294,6 +303,9 @@ void platform_screen_set_fullscreen(void)
 
 void platform_screen_set_windowed(void)
 {
+#ifdef __EMSCRIPTEN__
+    return;
+#endif
     if (system_is_fullscreen_only()) {
         return;
     }
@@ -316,6 +328,9 @@ void platform_screen_set_windowed(void)
 
 void platform_screen_set_window_size(int logical_width, int logical_height)
 {
+#ifdef __EMSCRIPTEN__
+    return;
+#endif
     if (system_is_fullscreen_only()) {
         return;
     }

@@ -170,10 +170,6 @@ configure_file(${PROJECT_SOURCE_DIR}/gen/version.c.in ${PROJECT_SOURCE_DIR}/src/
 configure_file(${PROJECT_SOURCE_DIR}/gen/version.rc.in ${PROJECT_SOURCE_DIR}/res/version.rc)
 configure_file(${PROJECT_SOURCE_DIR}/gen/version.txt.in ${PROJECT_SOURCE_DIR}/res/version.txt)
 
-if(${TARGET_PLATFORM} STREQUAL "emscripten")
-    configure_file(${PROJECT_SOURCE_DIR}/gen/shell.html.in ${PROJECT_SOURCE_DIR}/res/shell.html)
-endif()
-
 if(DRAW_FPS)
   add_definitions(-DDRAW_FPS)
 endif()
@@ -630,11 +626,6 @@ if(${TARGET_PLATFORM} STREQUAL "ios")
 endif()
 
 
-set(EMSCRIPTEN_FILES "")
-if(${TARGET_PLATFORM} STREQUAL "emscripten")
-    set(EMSCRIPTEN_FILES ${PROJECT_SOURCE_DIR}/res/shell.html)
-endif()
-
 set(SOURCE_FILES
     ${PLATFORM_FILES}
     ${CORE_FILES}
@@ -657,7 +648,6 @@ set(SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/res/julius.rc
     ${MACOSX_FILES}
     ${IOS_FILES}
-    ${EMSCRIPTEN_FILES}
 )
 
 function(GET_SDL_EXT_DIR result module)
@@ -714,8 +704,43 @@ else()
 endif()
 
 if(${TARGET_PLATFORM} STREQUAL "emscripten")
-    set(CMAKE_EXECUTABLE_SUFFIX .html)
-    set_target_properties(${SHORT_NAME} PROPERTIES LINK_FLAGS "-lidbfs.js -s SINGLE_FILE=1 -s DYNCALLS=1 --shell-file ${PROJECT_SOURCE_DIR}/res/shell.html -s INITIAL_MEMORY=268435456 -s ALLOW_MEMORY_GROWTH=1 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0 -s SAFE_HEAP=1 -s INVOKE_RUN=0 -s 'EXPORTED_FUNCTIONS=[\"_main\"]' -s 'EXPORTED_RUNTIME_METHODS=[\"callMain\",\"FS\"]'")
+    # Builds Julius.js, .wasm and .data; the web page that runs them comes from the site hosting the game.
+    # The Caesar 3 files, with the support files that release packages add (languages, editor, MP3 music; see
+    # res/emscripten/stage-data.cmake), are packed into the .data bundle at /c3, where main() looks for them.
+    # Saves and settings go to SDL's pref path, /libsdl/bvschaik/julius/, which the page keeps in IndexedDB.
+    set(C3_DATA_DIR "${PROJECT_SOURCE_DIR}/assets" CACHE PATH "Caesar 3 folder to pack into the web build")
+    set(C3_STAGE_DIR "${CMAKE_BINARY_DIR}/c3")
+    set(C3_STAGE_STAMP "${CMAKE_BINARY_DIR}/c3.stamp")
+    file(GLOB_RECURSE C3_DATA_FILES CONFIGURE_DEPENDS "${C3_DATA_DIR}/*")
+    add_custom_command(OUTPUT ${C3_STAGE_STAMP}
+        COMMAND ${CMAKE_COMMAND} "-DSRC=${C3_DATA_DIR}" "-DDST=${C3_STAGE_DIR}"
+            "-DDOWNLOADS=${CMAKE_BINARY_DIR}/support"
+            -P "${PROJECT_SOURCE_DIR}/res/emscripten/stage-data.cmake"
+        COMMAND ${CMAKE_COMMAND} -E touch ${C3_STAGE_STAMP}
+        DEPENDS ${C3_DATA_FILES} "${PROJECT_SOURCE_DIR}/res/emscripten/stage-data.cmake"
+        COMMENT "Gathering the Caesar 3 files from ${C3_DATA_DIR}"
+        VERBATIM)
+    add_custom_target(c3data DEPENDS ${C3_STAGE_STAMP})
+    add_dependencies(${SHORT_NAME} c3data)
+
+    set_target_properties(${SHORT_NAME} PROPERTIES OUTPUT_NAME "Julius" SUFFIX ".js")
+    target_link_options(${SHORT_NAME} PRIVATE
+        "-sALLOW_MEMORY_GROWTH"
+        "-sINITIAL_MEMORY=134217728"
+        "-sSTACK_SIZE=1048576"
+        "-sINVOKE_RUN=0"
+        "-sEXIT_RUNTIME"
+        "-sEXPORTED_RUNTIME_METHODS=callMain,FS,IDBFS,addRunDependency,removeRunDependency"
+        "-lidbfs.js"
+        "--preload-file=${C3_STAGE_DIR}@/c3"
+    )
+    # Relink when the data or the icon changes (the icon is copied after linking). res/emscripten/Julius.png is
+    # julius_512.png at 256 px with some padding, so it looks as big as the other games' icons on the site
+    set_property(TARGET ${SHORT_NAME} APPEND PROPERTY LINK_DEPENDS
+        ${C3_STAGE_STAMP} "${PROJECT_SOURCE_DIR}/res/emscripten/Julius.png")
+    add_custom_command(TARGET ${SHORT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${PROJECT_SOURCE_DIR}/res/emscripten/Julius.png" "$<TARGET_FILE_DIR:${SHORT_NAME}>/Julius.png")
 endif()
 
 if(MSVC)
