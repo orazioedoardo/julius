@@ -1,5 +1,6 @@
 #include "platform/prefs.h"
 
+#include "platform/file_manager.h"
 #include "platform/platform.h"
 
 #include "SDL.h"
@@ -36,7 +37,12 @@ FILE *open_pref_file(const char *filename, const char *mode)
             return NULL;
         }
 
+#ifdef __EMSCRIPTEN__
+        // Through the file manager, so that closing the file with file_close saves it to IndexedDB
+        FILE *fp = platform_file_manager_open_file(pref_file, mode);
+#else
         FILE *fp = fopen(pref_file, mode);
+#endif
         free(pref_file);
         return fp;
     }

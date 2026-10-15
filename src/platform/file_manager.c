@@ -93,6 +93,16 @@ typedef const char *dir_name;
 
 #ifdef __EMSCRIPTEN__
 static int writing_to_file;
+
+// Saves and settings live under /libsdl, which the page keeps in IndexedDB: write them through
+static void sync_saved_files(void)
+{
+    EM_ASM(
+        FS.syncfs(false, function(err) {
+            if (err) console.warn("Saving files failed:", err);
+        });
+    );
+}
 #endif
 
 #ifndef USE_FILE_CACHE
@@ -268,16 +278,16 @@ int platform_file_manager_remove_file(const char *filename)
 
 FILE *platform_file_manager_open_file(const char *filename, const char *mode)
 {
-    writing_to_file = strchr(mode, 'w') != 0;
+    if (strchr(mode, 'w') || strchr(mode, 'a')) {
+        writing_to_file = 1;
+    }
     return fopen(filename, mode);
 }
 
 int platform_file_manager_remove_file(const char *filename)
 {
     if (remove(filename) == 0) {
-        EM_ASM(
-            Module.syncFS();
-        );
+        sync_saved_files();
         return 1;
     }
     return 0;
@@ -315,9 +325,7 @@ int platform_file_manager_close_file(FILE *stream)
 #ifdef __EMSCRIPTEN__
     if (writing_to_file) {
         writing_to_file = 0;
-        EM_ASM(
-            Module.syncFS();
-        );
+        sync_saved_files();
     }
 #endif
     return result;

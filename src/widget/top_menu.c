@@ -159,7 +159,11 @@ static void set_text_for_warnings(void)
 
 static void init(void)
 {
+#ifdef __EMSCRIPTEN__
+    menu[INDEX_OPTIONS].items[0].hidden = 1; // fullscreen and window size: the page sizes the game
+#else
     menu[INDEX_OPTIONS].items[0].hidden = system_is_fullscreen_only();
+#endif
     set_text_for_autosave();
     set_text_for_tooltips();
     set_text_for_warnings();
@@ -371,13 +375,18 @@ int widget_top_menu_get_tooltip_text(tooltip_context *c)
     return 0;
 }
 
-static void menu_file_new_game(int param)
+static void go_to_main_menu(void)
 {
-    clear_state();
     building_construction_clear_type();
     game_undo_disable();
     game_state_reset_overlay();
     window_main_menu_show(1);
+}
+
+static void menu_file_new_game(int param)
+{
+    clear_state();
+    go_to_main_menu();
 }
 
 static void replay_map_confirmed(int confirmed)
@@ -427,7 +436,12 @@ static void menu_file_delete_game(int param)
 static void menu_file_confirm_exit(int accepted)
 {
     if (accepted) {
+#ifdef __EMSCRIPTEN__
+        // Quitting would end the page; the main menu's own Exit still quits
+        go_to_main_menu();
+#else
         system_exit();
+#endif
     } else {
         window_city_return();
     }
