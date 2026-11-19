@@ -171,10 +171,22 @@ static const char *get_case_corrected_file(const char *dir, const char *filepath
     return 0;
 }
 
+// The language folder for the user's language, used while the configured one is the default (see game_pre_init). Kept
+// apart from the configuration, so that saving it doesn't make it a choice.
+static char automatic_language_dir[CONFIG_STRING_VALUE_MAX];
+
+void dir_set_automatic_language_dir(const char *dir)
+{
+    strncpy(automatic_language_dir, dir, CONFIG_STRING_VALUE_MAX - 1);
+}
+
 const char *dir_get_file(const char *filepath, int localizable)
 {
     if (localizable != NOT_LOCALIZED) {
         const char *custom_dir = config_get_string(CONFIG_STRING_UI_LANGUAGE_DIR);
+        if (!*custom_dir) {
+            custom_dir = automatic_language_dir;
+        }
         if (*custom_dir) {
             const char *path = get_case_corrected_file(custom_dir, filepath);
             if (path) {

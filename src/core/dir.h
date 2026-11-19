@@ -34,6 +34,12 @@ const dir_listing *dir_find_files_with_extension(const char *extension);
 const dir_listing *dir_find_all_subdirectories(void);
 
 /**
+ * Sets the language folder used while the configured one is the default (empty): the one for the user's language
+ * @param dir Folder, or empty for the main folder
+ */
+void dir_set_automatic_language_dir(const char *dir);
+
+/**
  * Get the case sensitive and localized filename of the file
  * @param filepath File path to match to a case-sensitive file on the filesystem
  * @param localizable Whether the file may, must or must not be localized

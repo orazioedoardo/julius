@@ -132,6 +132,26 @@ void system_exit(void)
     post_event(USER_EVENT_QUIT);
 }
 
+int system_get_preferred_languages(char languages[][8], int max)
+{
+    int count = 0;
+#if SDL_VERSION_ATLEAST(2, 0, 14)
+    SDL_Locale *locales = SDL_GetPreferredLocales();
+    if (locales) {
+        for (const SDL_Locale *locale = locales; locale->language && count < max; locale++) {
+            if (locale->country) {
+                snprintf(languages[count], sizeof(languages[count]), "%s-%s", locale->language, locale->country);
+            } else {
+                snprintf(languages[count], sizeof(languages[count]), "%s", locale->language);
+            }
+            count++;
+        }
+        SDL_free(locales);
+    }
+#endif
+    return count;
+}
+
 void system_resize(int width, int height)
 {
     static int s_width;

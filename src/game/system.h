@@ -157,4 +157,12 @@ color_t *system_create_framebuffer(int width, int height);
  */
 void system_exit(void);
 
+/**
+ * Gets the user's preferred languages, most preferred first (on the web, the browser's)
+ * @param languages Filled with up to max language codes, each with its country when known: "fr", "zh-TW"
+ * @param max Maximum number of languages
+ * @return The number of languages filled in
+ */
+int system_get_preferred_languages(char languages[][8], int max);
+
 #endif // GAME_SYSTEM_H

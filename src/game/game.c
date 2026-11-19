@@ -3,6 +3,7 @@
 #include "building/model.h"
 #include "city/view.h"
 #include "core/config.h"
+#include "core/dir.h"
 #include "core/hotkey_config.h"
 #include "core/image.h"
 #include "core/lang.h"
@@ -17,6 +18,7 @@
 #include "game/settings.h"
 #include "game/speed.h"
 #include "game/state.h"
+#include "game/system.h"
 #include "game/tick.h"
 #include "graphics/font.h"
 #include "graphics/video.h"
@@ -29,6 +31,10 @@
 #include "window/editor/map.h"
 #include "window/logo.h"
 #include "window/main_menu.h"
+
+#include "SDL.h"
+
+#include <string.h>
 
 static void errlog(const char *msg)
 {
@@ -45,10 +51,64 @@ static encoding_type update_encoding(void)
     return encoding;
 }
 
+// The language folders (of the language packs) for the user's languages. A language with a country matches only that
+// country; English is the main folder.
+static const struct {
+    const char *language;
+    const char *dir;
+} LANGUAGE_DIRS[] = {
+    { "en", "" },
+    { "fr", "French" },
+    { "de", "German" },
+    { "it", "Italian" },
+    { "ja", "Japanese" },
+    { "ko", "Korean" },
+    { "pl", "Polish" },
+    { "pt", "Portuguese (Brazilian)" },
+    { "ru", "Russian" },
+    { "zh-TW", "Traditional Chinese" },
+    { "zh-HK", "Traditional Chinese" },
+    { "zh-MO", "Traditional Chinese" },
+    { "zh", "Simplified Chinese" },
+    { "es", "Spanish" },
+    { "sv", "Swedish" },
+};
+
+static int language_matches(const char *preferred, const char *language)
+{
+    size_t length = strlen(language);
+    if (SDL_strncasecmp(preferred, language, length) != 0) {
+        return 0;
+    }
+    // "zh-TW" matches "zh-TW"; "zh" matches "zh" and "zh-CN"
+    return preferred[length] == 0 || (preferred[length] == '-' && !strchr(language, '-'));
+}
+
+// While the language is the default ("Default" in the settings), the user's language: the first of their preferred
+// languages there's a language folder for, else the main folder (English)
+static void choose_automatic_language_dir(void)
+{
+    char preferred[8][8];
+    int count = system_get_preferred_languages(preferred, 8);
+    for (int i = 0; i < count; i++) {
+        for (size_t j = 0; j < sizeof(LANGUAGE_DIRS) / sizeof(LANGUAGE_DIRS[0]); j++) {
+            if (language_matches(preferred[i], LANGUAGE_DIRS[j].language) &&
+                (!*LANGUAGE_DIRS[j].dir || lang_dir_is_valid(LANGUAGE_DIRS[j].dir))) {
+                log_info("Language for", preferred[i], 0);
+                log_info("Language folder:", *LANGUAGE_DIRS[j].dir ? LANGUAGE_DIRS[j].dir : "(main)", 0);
+                dir_set_automatic_language_dir(LANGUAGE_DIRS[j].dir);
+                return;
+            }
+        }
+    }
+    dir_set_automatic_language_dir("");
+}
+
 int game_pre_init(void)
 {
     settings_load();
     config_load();
+    choose_automatic_language_dir();
     hotkey_config_load();
     scenario_settings_init();
     game_state_unpause();
